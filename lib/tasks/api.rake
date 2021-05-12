@@ -20,6 +20,14 @@ namespace :usps do
         end
       end
 
+      def find_header(node)
+        if %w[h1 h2 h3 h4].include? node.name 
+          node
+        else
+          find_header(node.parent)
+        end
+      end
+
       def table_array_to_hash_array(columns, rows)
         rows.map do |row|
           row_data = {}
@@ -124,13 +132,10 @@ namespace :usps do
             header_node = doc.search("a[name=#{subsection[:anchor]}]")[0].parent
             header_node = header_node.next_element if header_node.content.blank? && header_node.next_element
 
-            content_node = if header_node.next_element && header_node.next_element.content.present?
-                             header_node.next_element
-                           elsif header_node.parent.next_element && header_node.parent.next_element.content.present?
-                             header_node.parent.next_element
-                           else
-                             header_node.parent.parent.next_element
-                           end
+            header_node = find_header(header_node)
+
+            content_node = header_node.next_element
+
             next unless content_node # For section 1
 
             section_data[:link] = subsection[:link]
@@ -150,7 +155,7 @@ namespace :usps do
                 "#{section_data[:signature][0]['Scheme']}#{section_data[:signature][0]['Host']}#{section_data[:signature][0]['Path'].chomp('?')}"
               section_data[:group] =
                 section_data[:signature][0]['API'].sub('API=', '').gsub(/[[:space:]]+/,
-                                                                        ' ').strip
+                                                                        ' ').gsub('?', '').strip
             # ap section_data[:signature]
             # ap section_data[:signature].map{|s| s[]}
             # elsif subsection[:title] == "Request Descriptions"
